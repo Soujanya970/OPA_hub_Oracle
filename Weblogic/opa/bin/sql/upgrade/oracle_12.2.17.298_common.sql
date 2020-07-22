@@ -1,0 +1,1 @@
+UPDATE CONFIG_PROPERTY SET config_property_int_value=1 WHERE config_property_name = 'feature_auto_data_maintenance';
