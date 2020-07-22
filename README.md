@@ -4,10 +4,10 @@ Demo for Installing Opa-hub on weblogic using Docker. This configuration need we
 
 **Software Versions:**
 
-Docker version 19.03.6
-Oracle 19/12/12.2.0.1 with Oracle Linux 6 or 7
-Weblogic 12.2.1.3 (container-registry.oracle.com/middleware/weblogic:12.2.1.3 - 1.14 GB)
-OPA 19D (12.2.17)
+*Docker version 19.03.6
+*Oracle 19/12/12.2.0.1 with Oracle Linux 6 or 7
+*Weblogic 12.2.1.3 (container-registry.oracle.com/middleware/weblogic:12.2.1.3 - 1.14 GB)
+*OPA 19D (12.2.17)
 
 **Steps to be followed:**
 
