@@ -99,7 +99,7 @@ CREATE TABLE DATA_SERVICE (
   bearer_token_param VARCHAR(255) CHARACTER SET utf8,
   status SMALLINT DEFAULT 0 NOT NULL,
   soap_action_pattern VARCHAR(255) CHARACTER SET utf8,
-  metadata LONGTEXT,
+  metadata LONGTEXT CHARACTER SET utf8,
   use_trust_store SMALLINT DEFAULT 0 NOT NULL,
   ssl_private_key VARCHAR(80) CHARACTER SET utf8,
   assoc_client_id INT,
@@ -122,7 +122,7 @@ CREATE TABLE LOG_ENTRY (
   entry_timestamp DATETIME NOT NULL,
   entry_type VARCHAR(15) CHARACTER SET utf8 NOT NULL,
   code VARCHAR(15) CHARACTER SET utf8 NOT NULL,
-  message LONGTEXT NOT NULL,
+  message LONGTEXT CHARACTER SET utf8 NOT NULL,
   origin VARCHAR(30) CHARACTER SET utf8,
   CONSTRAINT log_entry_primary_key PRIMARY KEY (log_entry_id)
 ) Engine=INNODB;
@@ -142,7 +142,7 @@ CREATE TABLE SNAPSHOT (
 CREATE TABLE SNAPSHOT_CHUNK (
   snapshot_id INT NOT NULL,
   chunk_sequence INT NOT NULL,
-  chunk_slice LONGTEXT NOT NULL,
+  chunk_slice LONGTEXT CHARACTER SET utf8 NOT NULL,
   CONSTRAINT snapshot_chunk_unique PRIMARY KEY (snapshot_id, chunk_sequence)
 ) Engine=INNODB;
 
@@ -231,7 +231,9 @@ CREATE TABLE DEPLOYMENT_VERSION (
   deployment_version_id INT AUTO_INCREMENT NOT NULL,
   deployment_id INT NOT NULL REFERENCES DEPLOYMENT(deployment_id),
   deployment_version INT NOT NULL,
-  snapshot_id INT NOT NULL REFERENCES SNAPSHOT(snapshot_id),
+  deployment_version_kind SMALLINT DEFAULT 0 NOT NULL,
+  snapshot_id INT REFERENCES SNAPSHOT(snapshot_id),
+  module_version_id INT,
   user_name VARCHAR(255) CHARACTER SET utf8,
   opa_version VARCHAR(15) CHARACTER SET utf8 NOT NULL,
   description VARCHAR(255) CHARACTER SET utf8 NOT NULL,
@@ -269,7 +271,7 @@ CREATE TABLE DEPLOYMENT_RULEBASE_REPOS (
   id INT AUTO_INCREMENT NOT NULL,
   deployment_version_id INT NOT NULL REFERENCES DEPLOYMENT_VERSION(deployment_version_id),
   chunk_sequence INT NOT NULL,
-  chunk_slice LONGTEXT NOT NULL,
+  chunk_slice LONGTEXT CHARACTER SET utf8 NOT NULL,
   uploaded_date DATETIME NOT NULL,
   CONSTRAINT deployment_rb_repos_pk PRIMARY KEY (id),
   CONSTRAINT deployment_rb_repos_unique UNIQUE (deployment_version_id, chunk_sequence)
@@ -302,33 +304,13 @@ CREATE TABLE DEPLOYMENT_CHANNEL_DEFAULT (
 
 CREATE INDEX collection_id_uq ON DEPLOYMENT_CHANNEL_DEFAULT(collection_id);
 
-CREATE TABLE DEPLOYMENT_ACTION_LOG (
-  action_timestamp TIMESTAMP NOT NULL,
-  action_year BIGINT NOT NULL,
-  action_month BIGINT NOT NULL,
-  action_day BIGINT NOT NULL,
-  action_hour BIGINT NOT NULL,
-  deployment_name VARCHAR(255) CHARACTER SET utf8 NOT NULL,
-  product_name VARCHAR(50) CHARACTER SET utf8 NOT NULL,
-  product_version VARCHAR(50) CHARACTER SET utf8 NOT NULL,
-  session_id VARCHAR(32) CHARACTER SET utf8 NOT NULL,
-  user_id VARCHAR(255) CHARACTER SET utf8,
-  subject VARCHAR(50) CHARACTER SET utf8 NOT NULL,
-  verb VARCHAR(50) CHARACTER SET utf8 NOT NULL
-) Engine=INNODB;
-
-CREATE INDEX DEPLOY_ACT_LOG_NAME_YEAR ON DEPLOYMENT_ACTION_LOG(deployment_name, action_year);
-CREATE INDEX DEPLOY_ACT_LOG_NAME_MONTH ON DEPLOYMENT_ACTION_LOG(deployment_name, action_month);
-CREATE INDEX DEPLOY_ACT_LOG_NAME_DAY ON DEPLOYMENT_ACTION_LOG(deployment_name, action_day);
-CREATE INDEX DEPLOY_ACT_LOG_NAME_HOUR ON DEPLOYMENT_ACTION_LOG(deployment_name, action_hour);
-
 CREATE TABLE OPERATION (
   operation_id INT AUTO_INCREMENT NOT NULL,
   operation_name VARCHAR(255) CHARACTER SET utf8 NOT NULL,
   operation_type INT NOT NULL,
   operation_state INT NOT NULL,
   operation_version INT NOT NULL,
-  operation_model LONGTEXT NOT NULL,
+  operation_model LONGTEXT CHARACTER SET utf8 NOT NULL,
   invoke_url VARCHAR(1024) CHARACTER SET utf8,
   status_url VARCHAR(1024) CHARACTER SET utf8,
   query_param_names VARCHAR(1024) CHARACTER SET utf8,
@@ -441,10 +423,97 @@ CREATE TABLE SESSION_STATS_UID (
 ) Engine=INNODB;
 
 
+CREATE TABLE SESSION_STATS_LOG_V2 (
+  session_stats_log_v2_id BIGINT AUTO_INCREMENT NOT NULL,
+  session_stats_template_id INT NOT NULL,
+  deployment_id INT NOT NULL,
+  deployment_version_id INT NOT NULL,
+  product_code INT NOT NULL,
+  product_version VARCHAR(25) CHARACTER SET utf8 NOT NULL,
+  product_function_code INT NOT NULL,
+  product_function_version VARCHAR(25) CHARACTER SET utf8,
+  created_timestamp TIMESTAMP NULL,
+  created_year BIGINT NOT NULL,
+  created_month BIGINT NOT NULL,
+  created_day BIGINT NOT NULL,
+  created_hour BIGINT NOT NULL,
+  last_modified_timestamp TIMESTAMP NULL,
+  last_modified_year BIGINT NOT NULL,
+  last_modified_month BIGINT NOT NULL,
+  last_modified_day BIGINT NOT NULL,
+  last_modified_hour BIGINT NOT NULL,
+  duration_millis BIGINT NOT NULL,
+  duration_sec BIGINT NOT NULL,
+  duration_min BIGINT NOT NULL,
+  screens_visited INT NOT NULL,
+  auth_id BINARY(16),
+  auth_role SMALLINT NOT NULL,
+  completed SMALLINT NOT NULL,
+  data_service_id INT,
+  data_service_type INT,
+  data_service_version VARCHAR(25) CHARACTER SET utf8,
+  agent SMALLINT DEFAULT 0 NOT NULL,
+  CONSTRAINT session_stats_log_v2_pk PRIMARY KEY (session_stats_log_v2_id)
+) Engine=INNODB;
+
+CREATE INDEX usage_trend_v2 ON SESSION_STATS_LOG_V2(deployment_id, created_hour);
+CREATE INDEX sessions_by_created_year_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, created_timestamp, created_year);
+CREATE INDEX sessions_by_created_month_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, created_timestamp, created_month);
+CREATE INDEX sessions_by_created_day_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, created_timestamp, created_day);
+CREATE INDEX sessions_by_created_hour_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, created_timestamp, created_hour);
+CREATE INDEX sessions_by_duration_min_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, created_timestamp, duration_min);
+CREATE INDEX sessions_by_screens_visited_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, created_timestamp, screens_visited);
+CREATE INDEX agents_by_created_year_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, agent, created_timestamp, created_year);
+CREATE INDEX agents_by_created_month_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, agent, created_timestamp, created_month);
+CREATE INDEX agents_by_created_day_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, agent, created_timestamp, created_day);
+CREATE INDEX agents_by_created_hour_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, agent, created_timestamp, created_hour);
+
+CREATE TABLE SESSION_SCREEN_LOG_V2 (
+  session_screen_log_v2_id BIGINT AUTO_INCREMENT NOT NULL,
+  session_stats_log_v2_id BIGINT NOT NULL,
+  session_stats_template_id BIGINT NOT NULL,
+  deployment_id INT NOT NULL,
+  deployment_version_id INT NOT NULL,
+  product_code INT NOT NULL,
+  product_version VARCHAR(25) CHARACTER SET utf8 NOT NULL,
+  product_function_code INT NOT NULL,
+  session_created_timestamp TIMESTAMP NULL,
+  auth_id BINARY(16),
+  auth_role SMALLINT NOT NULL,
+  screen_id VARCHAR(50) CHARACTER SET utf8 NOT NULL,
+  screen_order INT NOT NULL,
+  screen_action_code INT NOT NULL,
+  screen_sequence INT NOT NULL,
+  entry_transition_code SMALLINT NOT NULL,
+  entry_timestamp TIMESTAMP NULL,
+  submit_timestamp TIMESTAMP NULL,
+  exit_transition_code SMALLINT,
+  exit_timestamp TIMESTAMP NULL,
+  duration_millis BIGINT NOT NULL,
+  duration_sec BIGINT NOT NULL,
+  duration_min BIGINT NOT NULL,
+  data_service_id INT,
+  data_service_type INT,
+  data_service_version VARCHAR(25) CHARACTER SET utf8,
+  agent SMALLINT DEFAULT 0 NOT NULL,
+  CONSTRAINT session_screen_log_v2_pk PRIMARY KEY (session_screen_log_v2_id)
+) Engine=INNODB;
+
+CREATE INDEX screen_by_session_v2_id ON SESSION_SCREEN_LOG_V2(session_stats_log_v2_id);
+CREATE INDEX screen_by_session_state_v2 ON SESSION_SCREEN_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, session_created_timestamp, session_stats_log_v2_id, screen_id, screen_action_code);
+CREATE INDEX screen_by_session_duration_v2 ON SESSION_SCREEN_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, session_created_timestamp, session_stats_log_v2_id, screen_id, duration_millis);
+
+CREATE TABLE SESSION_STATS_UID_V2 (
+  session_uid VARCHAR(36) CHARACTER SET utf8 NOT NULL,
+  session_stats_log_v2_id BIGINT NOT NULL,
+  CONSTRAINT SESSION_STATS_UID_V2_PK PRIMARY KEY (session_uid)
+) Engine=INNODB;
+
+
 CREATE TABLE STATISTICS_CHART (
   statistics_chart_id INT AUTO_INCREMENT NOT NULL,
   chart_type VARCHAR(30) CHARACTER SET utf8 NOT NULL,
-  chart_data LONGTEXT NOT NULL,
+  chart_data LONGTEXT CHARACTER SET utf8 NOT NULL,
   CONSTRAINT statistics_chart_pk PRIMARY KEY (statistics_chart_id)
 ) Engine=INNODB;
 
@@ -533,7 +602,7 @@ CREATE INDEX assessments_by_hour ON ASSESSMENT_STATS_LOG(deployment_id, deployme
 CREATE TABLE SSL_PUBLIC_CERTIFICATE (
   ssl_certificate_id INT AUTO_INCREMENT NOT NULL,
   cert_alias VARCHAR(80) CHARACTER SET utf8 NOT NULL,
-  certificate LONGTEXT,
+  certificate LONGTEXT CHARACTER SET utf8,
   last_updated DATETIME,
   fingerprint_sha256 VARCHAR(100) CHARACTER SET utf8,
   fingerprint_sha1 VARCHAR(60) CHARACTER SET utf8,
@@ -552,7 +621,7 @@ CREATE TABLE SITEKEY (
   kid VARCHAR(36) CHARACTER SET utf8 NOT NULL,
   status SMALLINT DEFAULT 0 NOT NULL,
   last_modified TIMESTAMP NOT NULL,
-  contents LONGTEXT NOT NULL,
+  contents LONGTEXT CHARACTER SET utf8 NOT NULL,
   CONSTRAINT key_kid_pk PRIMARY KEY (kid),
   CONSTRAINT key_status_chk CHECK (status >= 0 AND status <= 1)
 ) Engine=INNODB;
@@ -563,12 +632,12 @@ CREATE TABLE AUDIT_LOG (
   audit_date DATETIME NOT NULL,
   auth_id INT,
   auth_name VARCHAR(100) CHARACTER SET utf8,
-  description LONGTEXT,
+  description LONGTEXT CHARACTER SET utf8,
   object_type VARCHAR(50) CHARACTER SET utf8,
   object_id INT,
   operation VARCHAR(50) CHARACTER SET utf8,
   result INT,
-  extension LONGTEXT,
+  extension LONGTEXT CHARACTER SET utf8,
   CONSTRAINT audit_primary_key PRIMARY KEY (audit_id)
 ) Engine=INNODB;
 
@@ -577,7 +646,7 @@ CREATE INDEX audit_date_idx ON AUDIT_LOG(audit_date);
 CREATE TABLE SSL_PRIVATE_KEY (
   ssl_private_key_id INT AUTO_INCREMENT NOT NULL,
   key_name VARCHAR(80) CHARACTER SET utf8 NOT NULL,
-  keystore LONGTEXT,
+  keystore LONGTEXT CHARACTER SET utf8,
   last_updated DATETIME,
   fingerprint_sha256 VARCHAR(100) CHARACTER SET utf8,
   fingerprint_sha1 VARCHAR(60) CHARACTER SET utf8,
@@ -595,6 +664,7 @@ CREATE INDEX ssl_key_name_uq ON SSL_PRIVATE_KEY(key_name);
 CREATE TABLE MODULE (
   module_id INT AUTO_INCREMENT NOT NULL,
   module_name VARCHAR(127) CHARACTER SET utf8 NOT NULL,
+  module_kind SMALLINT DEFAULT 1 NOT NULL,
   CONSTRAINT module_pk PRIMARY KEY (module_id),
   CONSTRAINT module_name_unique UNIQUE (module_name)
 ) Engine=INNODB;
@@ -605,11 +675,9 @@ CREATE TABLE MODULE_VERSION (
   module_id INT NOT NULL REFERENCES MODULE(module_id),
   version_number INT,
   create_timestamp DATETIME NOT NULL,
-  is_draft SMALLINT DEFAULT 0 NOT NULL,
-  snapshot_id INT REFERENCES SNAPSHOT(snapshot_id),
+  user_name VARCHAR(255) CHARACTER SET utf8,
   fingerprint_sha256 VARCHAR(65) CHARACTER SET utf8 NOT NULL,
-  definition LONGTEXT NOT NULL,
-  rulebase_deployable SMALLINT DEFAULT 0 NOT NULL,
+  definition LONGTEXT CHARACTER SET utf8 NOT NULL,
   CONSTRAINT module_version_pk PRIMARY KEY (module_version_id),
   CONSTRAINT version_number_unique UNIQUE (module_id, version_number)
 ) Engine=INNODB;
@@ -625,4 +693,5 @@ CREATE TABLE MODULE_COLL (
 
 -- foreign keys
 ALTER TABLE DATA_SERVICE ADD CONSTRAINT data_service_client_id_fk FOREIGN KEY (assoc_client_id) REFERENCES AUTHENTICATION(authentication_id);
+ALTER TABLE DEPLOYMENT_VERSION ADD CONSTRAINT module_version_id_fk FOREIGN KEY (module_version_id) REFERENCES MODULE_VERSION(module_version_id);
 ALTER TABLE DEPLOYMENT_CHANNEL_DEFAULT ADD CONSTRAINT collection_channel_fk FOREIGN KEY (collection_id) REFERENCES COLLECTION(collection_id);

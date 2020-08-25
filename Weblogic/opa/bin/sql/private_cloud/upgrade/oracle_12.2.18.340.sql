@@ -1,0 +1,2 @@
+
+UPDATE CONFIG_PROPERTY SET config_property_int_value=120 WHERE config_property_name='wsc_req_timeout_for_metadata' AND config_property_int_value=20;

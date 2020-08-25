@@ -244,7 +244,9 @@ CREATE TABLE DEPLOYMENT_VERSION (
   deployment_version_id number(11) NOT NULL,
   deployment_id number(11) NOT NULL,
   deployment_version number(11) NOT NULL,
-  snapshot_id number(11) NOT NULL,
+  deployment_version_kind NUMBER(5) DEFAULT 0 NOT NULL,
+  snapshot_id number(11),
+  module_version_id number(11),
   user_name VARCHAR2(255 CHAR),
   opa_version VARCHAR2(15 CHAR) NOT NULL,
   description VARCHAR2(255 CHAR) NOT NULL,
@@ -318,26 +320,6 @@ CREATE TABLE DEPLOYMENT_CHANNEL_DEFAULT (
 
 CREATE SEQUENCE deployment_channel_default_seq START WITH 1 INCREMENT BY 1;
 CREATE INDEX collection_id_uq ON DEPLOYMENT_CHANNEL_DEFAULT(collection_id);
-
-CREATE TABLE DEPLOYMENT_ACTION_LOG (
-  action_timestamp DATE NOT NULL,
-  action_year NUMBER(19) NOT NULL,
-  action_month NUMBER(19) NOT NULL,
-  action_day NUMBER(19) NOT NULL,
-  action_hour NUMBER(19) NOT NULL,
-  deployment_name VARCHAR2(255 CHAR) NOT NULL,
-  product_name VARCHAR2(50 CHAR) NOT NULL,
-  product_version VARCHAR2(50 CHAR) NOT NULL,
-  session_id VARCHAR2(32 CHAR) NOT NULL,
-  user_id VARCHAR2(255 CHAR),
-  subject VARCHAR2(50 CHAR) NOT NULL,
-  verb VARCHAR2(50 CHAR) NOT NULL
-);
-
-CREATE INDEX DEPLOY_ACT_LOG_NAME_YEAR ON DEPLOYMENT_ACTION_LOG(deployment_name, action_year);
-CREATE INDEX DEPLOY_ACT_LOG_NAME_MONTH ON DEPLOYMENT_ACTION_LOG(deployment_name, action_month);
-CREATE INDEX DEPLOY_ACT_LOG_NAME_DAY ON DEPLOYMENT_ACTION_LOG(deployment_name, action_day);
-CREATE INDEX DEPLOY_ACT_LOG_NAME_HOUR ON DEPLOYMENT_ACTION_LOG(deployment_name, action_hour);
 
 CREATE TABLE OPERATION (
   operation_id number(11) NOT NULL,
@@ -460,6 +442,95 @@ CREATE TABLE SESSION_STATS_UID (
   session_uid VARCHAR2(36 CHAR) NOT NULL,
   session_stats_log_id NUMBER(19) NOT NULL,
   CONSTRAINT SESSION_STATS_UID_PK PRIMARY KEY (session_uid)
+);
+
+
+CREATE TABLE SESSION_STATS_LOG_V2 (
+  session_stats_log_v2_id NUMBER(19) NOT NULL,
+  session_stats_template_id number(11) NOT NULL,
+  deployment_id number(11) NOT NULL,
+  deployment_version_id number(11) NOT NULL,
+  product_code number(11) NOT NULL,
+  product_version VARCHAR2(25 CHAR) NOT NULL,
+  product_function_code number(11) NOT NULL,
+  product_function_version VARCHAR2(25 CHAR),
+  created_timestamp DATE,
+  created_year NUMBER(19) NOT NULL,
+  created_month NUMBER(19) NOT NULL,
+  created_day NUMBER(19) NOT NULL,
+  created_hour NUMBER(19) NOT NULL,
+  last_modified_timestamp DATE,
+  last_modified_year NUMBER(19) NOT NULL,
+  last_modified_month NUMBER(19) NOT NULL,
+  last_modified_day NUMBER(19) NOT NULL,
+  last_modified_hour NUMBER(19) NOT NULL,
+  duration_millis NUMBER(19) NOT NULL,
+  duration_sec NUMBER(19) NOT NULL,
+  duration_min NUMBER(19) NOT NULL,
+  screens_visited number(11) NOT NULL,
+  auth_id RAW(16),
+  auth_role NUMBER(5) NOT NULL,
+  completed NUMBER(5) NOT NULL,
+  data_service_id number(11),
+  data_service_type number(11),
+  data_service_version VARCHAR2(25 CHAR),
+  agent NUMBER(5) DEFAULT 0 NOT NULL,
+  CONSTRAINT session_stats_log_v2_pk PRIMARY KEY (session_stats_log_v2_id)
+);
+
+CREATE SEQUENCE session_stats_log_v2_seq START WITH 1 INCREMENT BY 1;
+CREATE INDEX usage_trend_v2 ON SESSION_STATS_LOG_V2(deployment_id, created_hour);
+CREATE INDEX sessions_by_created_year_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, created_timestamp, created_year);
+CREATE INDEX sessions_by_created_month_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, created_timestamp, created_month);
+CREATE INDEX sessions_by_created_day_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, created_timestamp, created_day);
+CREATE INDEX sessions_by_created_hour_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, created_timestamp, created_hour);
+CREATE INDEX sessions_by_duration_min_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, created_timestamp, duration_min);
+CREATE INDEX sessions_by_screens_visited_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, created_timestamp, screens_visited);
+CREATE INDEX agents_by_created_year_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, agent, created_timestamp, created_year);
+CREATE INDEX agents_by_created_month_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, agent, created_timestamp, created_month);
+CREATE INDEX agents_by_created_day_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, agent, created_timestamp, created_day);
+CREATE INDEX agents_by_created_hour_v2 ON SESSION_STATS_LOG_V2(deployment_id, deployment_version_id, agent, created_timestamp, created_hour);
+
+CREATE TABLE SESSION_SCREEN_LOG_V2 (
+  session_screen_log_v2_id NUMBER(19) NOT NULL,
+  session_stats_log_v2_id NUMBER(19) NOT NULL,
+  session_stats_template_id NUMBER(19) NOT NULL,
+  deployment_id number(11) NOT NULL,
+  deployment_version_id number(11) NOT NULL,
+  product_code number(11) NOT NULL,
+  product_version VARCHAR2(25 CHAR) NOT NULL,
+  product_function_code number(11) NOT NULL,
+  session_created_timestamp DATE,
+  auth_id RAW(16),
+  auth_role NUMBER(5) NOT NULL,
+  screen_id VARCHAR2(50 CHAR) NOT NULL,
+  screen_order number(11) NOT NULL,
+  screen_action_code number(11) NOT NULL,
+  screen_sequence number(11) NOT NULL,
+  entry_transition_code NUMBER(5) NOT NULL,
+  entry_timestamp DATE,
+  submit_timestamp DATE,
+  exit_transition_code NUMBER(5),
+  exit_timestamp DATE,
+  duration_millis NUMBER(19) NOT NULL,
+  duration_sec NUMBER(19) NOT NULL,
+  duration_min NUMBER(19) NOT NULL,
+  data_service_id number(11),
+  data_service_type number(11),
+  data_service_version VARCHAR2(25 CHAR),
+  agent NUMBER(5) DEFAULT 0 NOT NULL,
+  CONSTRAINT session_screen_log_v2_pk PRIMARY KEY (session_screen_log_v2_id)
+);
+
+CREATE SEQUENCE session_screen_log_v2_seq START WITH 1 INCREMENT BY 1;
+CREATE INDEX screen_by_session_v2_id ON SESSION_SCREEN_LOG_V2(session_stats_log_v2_id);
+CREATE INDEX screen_by_session_state_v2 ON SESSION_SCREEN_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, session_created_timestamp, session_stats_log_v2_id, screen_id, screen_action_code);
+CREATE INDEX screen_by_session_duration_v2 ON SESSION_SCREEN_LOG_V2(deployment_id, deployment_version_id, product_function_code, agent, session_created_timestamp, session_stats_log_v2_id, screen_id, duration_millis);
+
+CREATE TABLE SESSION_STATS_UID_V2 (
+  session_uid VARCHAR2(36 CHAR) NOT NULL,
+  session_stats_log_v2_id NUMBER(19) NOT NULL,
+  CONSTRAINT SESSION_STATS_UID_V2_PK PRIMARY KEY (session_uid)
 );
 
 
@@ -627,6 +698,7 @@ CREATE INDEX ssl_key_name_uq ON SSL_PRIVATE_KEY(key_name);
 CREATE TABLE MODULE (
   module_id number(11) NOT NULL,
   module_name VARCHAR2(127 CHAR) NOT NULL,
+  module_kind NUMBER(5) DEFAULT 1 NOT NULL,
   CONSTRAINT module_pk PRIMARY KEY (module_id),
   CONSTRAINT module_name_unique UNIQUE (module_name)
 );
@@ -638,11 +710,9 @@ CREATE TABLE MODULE_VERSION (
   module_id number(11) NOT NULL,
   version_number number(11),
   create_timestamp DATE NOT NULL,
-  is_draft NUMBER(5) DEFAULT 0 NOT NULL,
-  snapshot_id number(11),
+  user_name VARCHAR2(255 CHAR),
   fingerprint_sha256 VARCHAR2(65 CHAR) NOT NULL,
   definition CLOB NOT NULL,
-  rulebase_deployable NUMBER(5) DEFAULT 0 NOT NULL,
   CONSTRAINT module_version_pk PRIMARY KEY (module_version_id),
   CONSTRAINT version_number_unique UNIQUE (module_id, version_number)
 );
@@ -675,6 +745,7 @@ ALTER TABLE PROJECT_COLL ADD CONSTRAINT project_coll_project_id_fk FOREIGN KEY (
 ALTER TABLE DEPLOYMENT ADD CONSTRAINT activated_version_fk FOREIGN KEY (activated_version_id) REFERENCES DEPLOYMENT_VERSION(deployment_version_id);
 ALTER TABLE DEPLOYMENT_VERSION ADD CONSTRAINT deployment_version_id_fk FOREIGN KEY (deployment_id) REFERENCES DEPLOYMENT(deployment_id);
 ALTER TABLE DEPLOYMENT_VERSION ADD CONSTRAINT deployment_snapshot_id_fk FOREIGN KEY (snapshot_id) REFERENCES SNAPSHOT(snapshot_id);
+ALTER TABLE DEPLOYMENT_VERSION ADD CONSTRAINT module_version_id_fk FOREIGN KEY (module_version_id) REFERENCES MODULE_VERSION(module_version_id);
 ALTER TABLE DEPLOYMENT_ACTIVATION_HISTORY ADD CONSTRAINT deployment_act_history_id_fk FOREIGN KEY (deployment_id) REFERENCES DEPLOYMENT(deployment_id);
 ALTER TABLE DEPLOYMENT_ACTIVATION_HISTORY ADD CONSTRAINT deployment_act_version_id_fk FOREIGN KEY (deployment_version_id) REFERENCES DEPLOYMENT_VERSION(deployment_version_id);
 ALTER TABLE DEPLOYMENT_RULEBASE_REPOS ADD CONSTRAINT deployment_rb_version_fk FOREIGN KEY (deployment_version_id) REFERENCES DEPLOYMENT_VERSION(deployment_version_id);
@@ -698,6 +769,5 @@ ALTER TABLE OVERVIEW_STATS_CHART ADD CONSTRAINT OVER_CHART_STAT_CHART_FK FOREIGN
 ALTER TABLE FUNCTION_STATS_LOG ADD CONSTRAINT FUNCTION_STATS_DEPLOY_FK FOREIGN KEY (deployment_id) REFERENCES DEPLOYMENT(deployment_id);
 ALTER TABLE RULE_ELEMENT_STATS_LOG ADD CONSTRAINT RULE_ELEMENT_STATS_LOG_FK FOREIGN KEY (rule_element_id) REFERENCES RULE_ELEMENT(rule_element_id);
 ALTER TABLE MODULE_VERSION ADD CONSTRAINT module_id_fk FOREIGN KEY (module_id) REFERENCES MODULE(module_id);
-ALTER TABLE MODULE_VERSION ADD CONSTRAINT mv_snapshot_id_fk FOREIGN KEY (snapshot_id) REFERENCES SNAPSHOT(snapshot_id);
 ALTER TABLE MODULE_COLL ADD CONSTRAINT module_coll_coll_id_fk FOREIGN KEY (collection_id) REFERENCES COLLECTION(collection_id);
 ALTER TABLE MODULE_COLL ADD CONSTRAINT module_coll_deploy_id_fk FOREIGN KEY (module_id) REFERENCES MODULE(module_id);

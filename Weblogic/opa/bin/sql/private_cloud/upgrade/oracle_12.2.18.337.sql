@@ -1,0 +1,65 @@
+
+CALL opa_create_obj_if_not_exists('CREATE TABLE SESSION_STATS_LOG_V2 ('
+  || 'session_stats_log_v2_id NUMBER(19) NOT NULL, ' 
+  || 'session_stats_template_id number(11) NOT NULL, ' 
+  || 'deployment_id number(11) NOT NULL, ' 
+  || 'deployment_version_id number(11) NOT NULL, ' 
+  || 'product_code number(11) NOT NULL, ' 
+  || 'product_version VARCHAR2(25 CHAR) NOT NULL, ' 
+  || 'product_function_code number(11) NOT NULL, ' 
+  || 'product_function_version VARCHAR2(25 CHAR), ' 
+  || 'created_timestamp DATE, ' 
+  || 'created_year NUMBER(19) NOT NULL, ' 
+  || 'created_month NUMBER(19) NOT NULL, ' 
+  || 'created_day NUMBER(19) NOT NULL, ' 
+  || 'created_hour NUMBER(19) NOT NULL, ' 
+  || 'last_modified_timestamp DATE, ' 
+  || 'last_modified_year NUMBER(19) NOT NULL, ' 
+  || 'last_modified_month NUMBER(19) NOT NULL, ' 
+  || 'last_modified_day NUMBER(19) NOT NULL, ' 
+  || 'last_modified_hour NUMBER(19) NOT NULL, ' 
+  || 'duration_millis NUMBER(19) NOT NULL, ' 
+  || 'duration_sec NUMBER(19) NOT NULL, ' 
+  || 'duration_min NUMBER(19) NOT NULL, ' 
+  || 'screens_visited number(11) NOT NULL, ' 
+  || 'auth_id RAW(16), ' 
+  || 'auth_role NUMBER(5) NOT NULL, ' 
+  || 'completed NUMBER(5) NOT NULL, ' 
+  || 'CONSTRAINT session_stats_log_v2_pk PRIMARY KEY (session_stats_log_v2_id) )');
+
+CALL opa_create_obj_if_not_exists('CREATE SEQUENCE session_stats_log_v2_seq START WITH 1 INCREMENT BY 1');
+
+CALL opa_create_obj_if_not_exists('CREATE TABLE SESSION_SCREEN_LOG_V2 ('
+  || 'session_screen_log_v2_id NUMBER(19) NOT NULL, ' 
+  || 'session_stats_log_v2_id NUMBER(19) NOT NULL, ' 
+  || 'session_stats_template_id NUMBER(19) NOT NULL, ' 
+  || 'deployment_id number(11) NOT NULL, ' 
+  || 'deployment_version_id number(11) NOT NULL, ' 
+  || 'product_code number(11) NOT NULL, ' 
+  || 'product_version VARCHAR2(25 CHAR) NOT NULL, ' 
+  || 'product_function_code number(11) NOT NULL, ' 
+  || 'session_created_timestamp DATE, ' 
+  || 'auth_id RAW(16), ' 
+  || 'auth_role NUMBER(5) NOT NULL, ' 
+  || 'screen_id VARCHAR2(50 CHAR) NOT NULL, ' 
+  || 'screen_order number(11) NOT NULL, ' 
+  || 'screen_action_code number(11) NOT NULL, ' 
+  || 'screen_sequence number(11) NOT NULL, ' 
+  || 'entry_transition_code NUMBER(5) NOT NULL, ' 
+  || 'entry_timestamp DATE, ' 
+  || 'submit_timestamp DATE, ' 
+  || 'exit_transition_code NUMBER(5), ' 
+  || 'exit_timestamp DATE, ' 
+  || 'duration_millis NUMBER(19) NOT NULL, ' 
+  || 'duration_sec NUMBER(19) NOT NULL, ' 
+  || 'duration_min NUMBER(19) NOT NULL, ' 
+  || 'CONSTRAINT session_screen_log_v2_pk PRIMARY KEY (session_screen_log_v2_id) )');
+
+CALL opa_create_obj_if_not_exists('CREATE SEQUENCE session_screen_log_v2_seq START WITH 1 INCREMENT BY 1');
+CALL opa_add_index_if_not_exists('SESSION_SCREEN_LOG_V2', 'screen_by_session_v2_id', '(session_stats_log_v2_id)');
+
+CALL opa_create_obj_if_not_exists('CREATE TABLE SESSION_STATS_UID_V2 ('
+  || 'session_uid VARCHAR2(36 CHAR) NOT NULL, ' 
+  || 'session_stats_log_v2_id NUMBER(19) NOT NULL, ' 
+  || 'CONSTRAINT SESSION_STATS_UID_V2_PK PRIMARY KEY (session_uid) )');
+
